@@ -24,7 +24,6 @@ def setup():
 
     url = 'https://www.paris-turf.com/compte/login_check'
 
-    os.chdir('./horses')
     with open('login_headers.json','r') as f_in:
         login_headers = json.load(f_in)
 
@@ -32,7 +31,7 @@ def setup():
         login_data = json.load(f_in)
     requester.post(url,login_data,login_headers)
 
-    os.chdir(f'./../races/{config.RACE_TYPE}')
+    os.chdir(f'./races/{config.RACE_TYPE}')
 
     df12 = pd.read_csv(f'races_2012.csv',engine='python')
     df13 = pd.read_csv(f'races_2013.csv',engine='python')
