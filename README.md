@@ -34,6 +34,10 @@ Firefox webdriver. Available for download [here](https://github.com/mozilla/geck
 
 - [ ] individual horse files
 
+- [ ] individual jockey files
+
+- [ ] individual trainer
+
 - [ ] splitting data (training and testing)
 
 - [ ] simulating bankroll
