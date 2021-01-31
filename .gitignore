@@ -6,3 +6,6 @@ logs/
 test.csv
 *.json
 go/
+galop/
+handicap/
+data/
