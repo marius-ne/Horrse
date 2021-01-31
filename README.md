@@ -54,3 +54,5 @@ Firefox webdriver. Available for download [here](https://github.com/mozilla/geck
 > https://pandas.pydata.org/pandas-docs/stable/user_guide/10min.html
 
 > https://www.paris-turf.com/fiche-cheval/air-de-valse-1335407
+
+> https://teddykoker.com/2019/12/beating-the-odds-machine-learning-for-horse-racing/
