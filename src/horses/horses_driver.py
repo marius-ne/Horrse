@@ -15,7 +15,7 @@ from config import Config
 
 HORSES = []
 
-columns = ['finish','date','age','track','type','mode','length','jockey']
+columns = ['finish','date','age','track','type','mode','length','jockey','link']
 sections = ['victories','success','trainer','earnings','birthday']
 
 
@@ -46,11 +46,16 @@ def setup():
     
     df = pd.read_csv('all.csv',engine='python')
     for ix in range(1,21):
-        HORSES.extend([i for i in df[f'NAME{ix}'] if i is not np.nan])
+        for i in df[f'NAME{ix}']:
+            if i is not np.nan:
+                HORSES.append(i)
 
     print(len(HORSES),len(set(HORSES)))
+    tracks = set(df['track'])
+    print(tracks)
 
 def find_horses(response):
+    print(response.url)
     c_dct = {c:[] for c in columns}
     s_dct = {s:np.nan for s in sections}
     
@@ -58,16 +63,29 @@ def find_horses(response):
 
     s_dct['trainer'] = requester.find('//span[@class="text-color-flashy-2"][1]/..',response=response)[0].attrib["href"].split('/')[-1]
     s_dct['victories'] = requester.find('//span[@class="icon-trophy"]/span',response=response)[0].text_content()
-    s_dct['success'] = requester.find('//div[@id="gauge"]/span[@class="text-color-flashy-2"]',response=response)[0].text_content()
-    s_dct['earnings'] = requester.find('//span[@class="title text-color-flashy-2 text-size-lg text-bold"]',response=response)[0].text_content()
-    s_dct['birthday'] = requester.find('//div[@class="row-fluid row-no-margin historyBlock"]/div[@class="col-xs-4"][1]//tr[@class="vertical-middle"][2]/td[2]',response=response)[0].text_content()
+    s_dct['success'] = requester.find('//div[@id="gauge"]/span[@class="text-color-flashy-2"]',response=response)[0].text_content().strip(' \n')
+    s_dct['earnings'] = requester.find('//span[@class="title text-color-flashy-2 text-size-lg text-bold"]',response=response)[0].text_content().strip(' \n')
+    birthday_row = requester.find('//div[@class="row-fluid row-no-margin historyBlock"]' +
+                                  '/div[@class="col-xs-4"][1]//tr[@class="vertical-middle"][2]',response=response)[0]
+    if "Date de naissance" in birthday_row[0].text_content():
+        s_dct['birthday'] = birthday_row[1].text_content()
+    else:
+        raise Exception
 
+    bday_time = datetime.strptime(s_dct['birthday'],'%Y-%m-%d')
     for row in table:
         c_dct['jockey'].append(requester.find('/td[@class="nom"][2]/a',response=response,parent=row)[0].attrib["href"].split('/')[-1])
-        c_dct['date'].append(requester.find('/td[@class="date fixe fixed-column tooltip-cell"]',response=response,parent=row)[0].text_content())
+        c_dct['link'].append(requester.find('/td[@class="nom"][1]/a',response=response,parent=row)[0].attrib["href"].split('/')[-1].split('?')[0])
+
+        date = requester.find('/td[@class="date fixe fixed-column tooltip-cell"]',response=response,parent=row)[0].text_content()
+        c_dct['date'].append(date)
         c_dct['finish'].append(requester.find('/td[@class="fixe fixed-column classement tooltip-cell"]',response=response,parent=row)[0].text_content())
 
-    print(c_dct,s_dct)
+        race_time = datetime.strptime(date,'%d/%m/%y')
+        delta = race_time-bday_time
+        c_dct['age'].append(delta.days)
+
+    print(c_dct,s_dct,sep='\n')
 
 def threaded_request_callback(url):
     requester.webpage = url

@@ -1,0 +1,41 @@
+https://www.paris-turf.com/programme-courses/01-01-2010
+galop: 0, valid: 0
+https://www.paris-turf.com/programme-courses/02-01-2010
+prix de bordères
+prix de madiran
+prix d'arudy
+prix de lasseube
+galop: 4, valid: 4
+https://www.paris-turf.com/programme-courses/03-01-2010
+prix de la perdrière
+prix de folleville
+prix de l'hamonerie
+prix miss satamixa
+prix de thaon
+prix de la gélinière
+prix de la hunaudière
+prix de la chardenière
+prix de beauvoir
+prix du merlerault
+prix de la villière
+prix de beneauville
+galop: 12, valid: 12
+https://www.paris-turf.com/programme-courses/04-01-2010
+prix de la charentonne
+prix de la baie de seine
+prix d'herbourgère
+prix des coudraies
+prix des commeaux
+prix de ryes
+prix de la seine-maritime
+prix de la vallée de la seine
+prix des chaumes
+prix de la beauvoisinière
+prix des buissonnets
+prix de la gicquelière
+galop: 12, valid: 12
+https://www.paris-turf.com/programme-courses/05-01-2010
+prix d'araujuzon
+prix de lasclaveries
+prix de lescar
+galop: 3, valid: 3

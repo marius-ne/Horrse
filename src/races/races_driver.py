@@ -109,7 +109,7 @@ def find_races(response):
         #print(race_type)
         return None    
 
-    dct['pool'] = requester.find('/node()',response=response,parent=pool_paragraph)[3].replace(' ','').replace('\n','').replace('€','EU')
+    dct['pool'] = requester.find('/node()',response=response,parent=pool_paragraph)[3].strip(' \n').replace('€','EU')
 
     table = requester.find('//tr[@class="vertical-middle"]',response=response)
 

@@ -37,10 +37,15 @@ class Requester(object):
         except Exception as e:
             raise e
 
-    def find(self,response,xpath,parent=0):
+    def find(self,xpath,response=0,parent=0):
         """
         
         """
+        if response == None:
+            raise ValueError("ERROR: given response doesn't exist!")
+        elif response == 0:
+            response = self.webpage
+
         if parent == None:
             raise ValueError("ERROR: given parent doesn't exist!")
         elif parent == 0:
@@ -112,15 +117,12 @@ class Threaded_Requester(object):
             self.thread_local.session = requests.Session()
         return self.thread_local.session
 
-    def find(self,xpath,response=0,parent=0):
+    def find(self,xpath,response,parent=0):
         """
-        
+        response arg not optional because of threading,
+        one requester object for all threads, therefore
+        specific response required
         """
-        if response == None:
-            raise ValueError("ERROR: given response doesn't exist!")
-        elif response == 0:
-            response = self.webpage
-
         if parent == None:
             raise ValueError("ERROR: given parent doesn't exist!")
         elif parent == 0:

@@ -1,10 +1,8 @@
-galop/
 geckodriver.exe
 src/geckodriver.log
 __init__.py
 src.code-workspace
 logs/
-handicap/
 test.csv
 *.json
-data/
+go/
