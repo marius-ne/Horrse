@@ -18,6 +18,13 @@ HORSES = []
 columns = ['finish','date','age','track','type','mode','length','jockey']
 sections = ['victories','success','trainer','earnings','birthday']
 
+
+def merge(y1,y2):
+    df = pd.concat([pd.read_csv(f'races_{y}.csv',engine='python') for y in range(y1,y2)])
+
+    df.to_csv(open('all.csv','w'),na_rep='NaN',index=False,encoding="utf-8")
+    df.to_excel(open('all.xlsx','wb'),na_rep='NaN',index=False,encoding="utf-8")
+
 def setup():
     global requester
     global logger
@@ -36,26 +43,19 @@ def setup():
     requester.post(url,login_data,login_headers)
 
     os.chdir(f'./races/{config.RACE_TYPE}')
-
-    df = pd.concat([pd.read_csv(f'races_{y}.csv',engine='python') for y in range(2008,2021)])
-
-    df.to_csv(open('all.csv','w'),na_rep='NaN',index=False,encoding="utf-8")
-    df.to_excel(open('all.xlsx','wb'),na_rep='NaN',index=False,encoding="utf-8")
-
+    
+    df = pd.read_csv('all.csv',engine='python')
     for ix in range(1,21):
         HORSES.extend([i for i in df[f'NAME{ix}'] if i is not np.nan])
 
     print(len(HORSES),len(set(HORSES)))
 
 def find_horses(response):
-    url = 'https://www.paris-turf.com/fiche-cheval/' + horse
-    requester.webpage = url
-
     c_dct = {c:[] for c in columns}
     s_dct = {s:np.nan for s in sections}
-
-    table = requester.find('//table[@class = "table tooltip-enable race-table sortable"]/tbody//tr',response=response)
     
+    table = requester.find('//table[@class = "table tooltip-enable race-table sortable"]/tbody//tr',response=response)
+
     s_dct['trainer'] = requester.find('//span[@class="text-color-flashy-2"][1]/..',response=response)[0].attrib["href"].split('/')[-1]
     s_dct['victories'] = requester.find('//span[@class="icon-trophy"]/span',response=response)[0].text_content()
     s_dct['success'] = requester.find('//div[@id="gauge"]/span[@class="text-color-flashy-2"]',response=response)[0].text_content()
@@ -66,6 +66,8 @@ def find_horses(response):
         c_dct['jockey'].append(requester.find('/td[@class="nom"][2]/a',response=response,parent=row)[0].attrib["href"].split('/')[-1])
         c_dct['date'].append(requester.find('/td[@class="date fixe fixed-column tooltip-cell"]',response=response,parent=row)[0].text_content())
         c_dct['finish'].append(requester.find('/td[@class="fixe fixed-column classement tooltip-cell"]',response=response,parent=row)[0].text_content())
+
+    print(c_dct,s_dct)
 
 def threaded_request_callback(url):
     requester.webpage = url
