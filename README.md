@@ -36,7 +36,7 @@ Firefox webdriver. Available for download [here](https://github.com/mozilla/geck
 
 - [ ] individual jockey files
 
-- [ ] individual trainer
+- [ ] individual trainer files
 
 - [ ] splitting data (training and testing)
 
