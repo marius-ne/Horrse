@@ -7,4 +7,4 @@ logs/
 handicap/
 test.csv
 *.json
-
+data/

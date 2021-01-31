@@ -12,7 +12,7 @@ from logger import Logger
 from requester import Threaded_Requester, Requester
 from config import Config
 
-RACE_YEAR = {f'{m:02d}' : [] for m in range(1,13)}
+
 
 columns = ['starters','mode','track','pool','date','length','ground','cond','ref','corde','Q1','P1','P2','P3']
 for i in range(1,21):
@@ -23,7 +23,9 @@ for i in range(1,21):
     columns.append(f'DELTA{i}')
     columns.append(f'NAME{i}')
 columns.append('link')
+
 DF_DCT = {c:[] for c in columns}
+RACE_YEAR = {f'{m:02d}' : [] for m in range(1,13)}
 
 def year():
     #generator that steps through the year
@@ -36,12 +38,19 @@ def log():
     df.to_excel(excel_writer=open(f'races_{config.YEAR}.xlsx','wb'),index=False,na_rep='NaN', encoding="utf-8")
 
 def setup():
+    os.chdir('C://Users//meneu//Documents//prop//code//horrse//git_repo//src//races')
     global requester
     global logger
     global config
     config = Config()
     logger = Logger()
     requester = Threaded_Requester()
+
+    #global columns
+    #global RACE_YEAR
+    #global DF_DCT
+    #DF_DCT = {c:[] for c in columns}
+    #RACE_YEAR = {f'{m:02d}' : [] for m in range(1,13)}
     #requester = Requester()
     os.chdir(f'./meetings/{config.MEETING_TYPE}')
 
@@ -63,20 +72,20 @@ def find_races(response):
     #print(response.url)
     illegal_placements = 0
 
-    columns = ['starters','mode','track','pool','date','length','ground','cond','ref','corde','Q1','P1','P2','P3']
-    for i in range(1,21):
-        columns.append(f'PMU{i}')
-        columns.append(f'OUV{i}')
-        columns.append(f'S/A{i}')
-        columns.append(f'BOX{i}')
-        columns.append(f'DELTA{i}')
-        columns.append(f'NAME{i}')
-    columns.append('link')
+    # columns = ['starters','mode','track','pool','date','length','ground','cond','ref','corde','Q1','P1','P2','P3']
+    # for i in range(1,21):
+    #     columns.append(f'PMU{i}')
+    #     columns.append(f'OUV{i}')
+    #     columns.append(f'S/A{i}')
+    #     columns.append(f'BOX{i}')
+    #     columns.append(f'DELTA{i}')
+    #     columns.append(f'NAME{i}')
+    # columns.append('link')
     dct = {c:np.nan for c in columns}
 
-    info_paragraph = requester.find(response,'//div[@class ="row-fluid row-no-margin text-left"]/p')[0]
-    pool_paragraph = requester.find(response,'//div[@class ="row-fluid row-no-margin text-left"]/p')[1]
-    info = requester.find(response,'/node()',parent=info_paragraph)
+    info_paragraph = requester.find('//div[@class ="row-fluid row-no-margin text-left"]/p',response=response)[0]
+    pool_paragraph = requester.find('//div[@class ="row-fluid row-no-margin text-left"]/p',response=response)[1]
+    info = requester.find('/node()',response=response,parent=info_paragraph)
     
     br_pos = 0
     main = []
@@ -100,11 +109,11 @@ def find_races(response):
         #print(race_type)
         return None    
 
-    dct['pool'] = requester.find(response,'/node()',parent=pool_paragraph)[3].replace(' ','').replace('\n','').replace('€','EU')
+    dct['pool'] = requester.find('/node()',response=response,parent=pool_paragraph)[3].replace(' ','').replace('\n','').replace('€','EU')
 
-    table = requester.find(response,'//tr[@class="vertical-middle"]')
+    table = requester.find('//tr[@class="vertical-middle"]',response=response)
 
-    track = requester.find(response,'//header[@class ="text-center CourseHeader"]/h1/node()[not(self::strong)]')
+    track = requester.find('//header[@class ="text-center CourseHeader"]/h1/node()[not(self::strong)]',response=response)
     
     for entry in track:
         if '/' in entry:
@@ -135,20 +144,20 @@ def find_races(response):
             dct['ground'] = 'grass'
             dct['cond'] = i.replace('é','e')
 
-    odds_table = requester.find(response,'//table[@class = "table reports first"]/tbody//tr[@class = "vertical-middle text-center"]')
-    dct['Q1'] = requester.find(response,'/td[2]',parent=odds_table[0])[0].text_content().replace('€','EU').replace(',','.')
-    dct['P1'] = requester.find(response,'/td[2]',parent=odds_table[1])[0].text_content().replace('€','EU').replace(',','.')
-    dct['P2'] = requester.find(response,'/td[2]',parent=odds_table[2])[0].text_content().replace('€','EU').replace(',','.')
+    odds_table = requester.find('//table[@class = "table reports first"]/tbody//tr[@class = "vertical-middle text-center"]',response=response)
+    dct['Q1'] = requester.find('/td[2]',response=response,parent=odds_table[0])[0].text_content().replace('€','EU').replace(',','.')
+    dct['P1'] = requester.find('/td[2]',response=response,parent=odds_table[1])[0].text_content().replace('€','EU').replace(',','.')
+    dct['P2'] = requester.find('/td[2]',response=response,parent=odds_table[2])[0].text_content().replace('€','EU').replace(',','.')
     
     try:
-        dct['P3'] = requester.find(response,'/td[2]',parent=odds_table[3])[0].text_content().replace('€','EU').replace(',','.')
+        dct['P3'] = requester.find('/td[2]',response=response,parent=odds_table[3])[0].text_content().replace('€','EU').replace(',','.')
     except IndexError:
         pass
     
 
     for ix,row in enumerate(table):
         ix = ix + 1
-        fin = requester.find(response,'/td[@class="fixe strong"]/text()',parent=row)[0]
+        fin = requester.find('/td[@class="fixe strong"]/text()',response=response,parent=row)[0]
         try:
             fin = int(fin[0])
         except ValueError:
@@ -157,22 +166,22 @@ def find_races(response):
                 print(fin,response.url)
                 break
         
-        dct[f'BOX{ix}'] =  requester.find(response,'/td[@class="filtered arrivees rapport"][last()]/text()',parent=row)[0]
+        dct[f'BOX{ix}'] =  requester.find('/td[@class="filtered arrivees rapport"][last()]/text()',response=response,parent=row)[0]
 
         try:
-            delta = requester.find(response,'/td[@class="filtered arrivees strong"]/text()',parent=row)[0]
+            delta = requester.find('/td[@class="filtered arrivees strong"]/text()',response=response,parent=row)[0]
             dct[f'DELTA{ix}'] = delta.replace('ê','e')
         except IndexError:
             pass
 
         #sex and age combined into single argument (Hongre - 5y/o == "H5")
-        dct[f'S/A{ix}'] = requester.find(response,'/td[@class="filtered arrivees"]/text()',parent=row)[0]
+        dct[f'S/A{ix}'] = requester.find('/td[@class="filtered arrivees"]/text()',response=response,parent=row)[0]
         
         #xpath numbering is indexed from 1
-        dct[f'OUV{ix}'] = requester.find(response,'/td[@class="rapport filtered arrivees"][1]/text()',parent=row)[0]
-        dct[f'PMU{ix}'] = requester.find(response,'/td[@class="rapport filtered arrivees"][2]/text()',parent=row)[0]
+        dct[f'OUV{ix}'] = requester.find('/td[@class="rapport filtered arrivees"][1]/text()',response=response,parent=row)[0]
+        dct[f'PMU{ix}'] = requester.find('/td[@class="rapport filtered arrivees"][2]/text()',response=response,parent=row)[0]
 
-        horse = requester.find(response,'/td[@class="nom tooltip-cell strong"]',parent=row)[0]
+        horse = requester.find('/td[@class="nom tooltip-cell strong"]',response=response,parent=row)[0]
         dct[f'NAME{ix}'] = f'{"-".join(horse.text_content().split(" "))}-{horse.attrib["data-id"]}'
 
         #jock = requester.find('/td[@class="nom tooltip-cell filtered arrivees"][1]/text()',parent=row)[0]

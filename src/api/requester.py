@@ -112,13 +112,19 @@ class Threaded_Requester(object):
             self.thread_local.session = requests.Session()
         return self.thread_local.session
 
-    def find(self,response,xpath,parent=0):
+    def find(self,xpath,response=0,parent=0):
         """
         
         """
+        if response == None:
+            raise ValueError("ERROR: given response doesn't exist!")
+        elif response == 0:
+            response = self.webpage
+
         if parent == None:
             raise ValueError("ERROR: given parent doesn't exist!")
         elif parent == 0:
             parent = html.fromstring(response.content)
+
         res = parent.xpath(f'.{xpath}')
         return res
