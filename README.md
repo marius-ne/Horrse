@@ -2,7 +2,7 @@
 
 # Horrse :horse:
 
-OpenSource horse racing &amp; betting project. Written in Python.
+French handicap racing scraping & ML project. Written in Python. 
 
 The goal is to scrape, analyse and predict French handicap gallops.
 
