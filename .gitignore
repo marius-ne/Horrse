@@ -5,7 +5,6 @@ src.code-workspace
 logs/
 test.csv
 *.json
-r/
 galop/
 handicap/
 data/
