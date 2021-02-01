@@ -56,3 +56,5 @@ Firefox webdriver. Available for download [here](https://github.com/mozilla/geck
 > https://www.paris-turf.com/fiche-cheval/air-de-valse-1335407
 
 > https://teddykoker.com/2019/12/beating-the-odds-machine-learning-for-horse-racing/
+
+> https://www.deeplearningwizard.com/deep_learning/practical_pytorch/pytorch_feedforward_neuralnetwork/
