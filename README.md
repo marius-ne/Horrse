@@ -44,7 +44,7 @@ Firefox webdriver. Available for download [here](https://github.com/mozilla/geck
 
 - [ ] add comments & docs
 
-- [ ] csv handling in Golang?
+- [ ] csv handling in R?
 ### Ressources
 
 > https://github.com/johnosullivan/ml-horse-prediction
