@@ -17,13 +17,15 @@ from config import Config
 HORSES = []
 
 columns = ['finish','box','date','age','jockey','track','type','mode','length','ground','cond','weight','link']
-sections = ['name','victories','success','trainer','earnings','birthday']
+sections = ['name','sex','birthday','victories','success','trainer','earnings']
 
 def merge(y1,y2):
     df = pd.concat([pd.read_csv(f'races_{y}.csv',engine='python') for y in range(y1,y2)])
 
-    df.to_csv(open('all.csv','w'),na_rep='NaN',index=False,encoding="utf-8")
-    df.to_excel(open('all.xlsx','wb'),na_rep='NaN',index=False,encoding="utf-8")
+    with open('all.csv','w') as f:
+        df.to_csv(f,na_rep='NaN',index=False,encoding="utf-8")
+    with open('all.xlsx','wb') as f:
+        df.to_excel(f,na_rep='NaN',index=False,encoding="utf-8")
 
 def log(name,data):
     sections = data[0]
@@ -34,7 +36,8 @@ def log(name,data):
     for row in rows:
         cfg[row['date']] = row
 
-    cfg.write(open(f'{name}.ini','w'))
+    with open(f'{name}.ini','w') as f:
+        cfg.write(f)
     logger.write(f'written {name}.ini')
 
 def login():
@@ -78,12 +81,13 @@ def find_horse_data(name,response):
     s_dct['victories'] = requester.find('//span[@class="icon-trophy"]/span',response=response)[0].text_content()
     s_dct['success'] = requester.find('//div[@id="gauge"]/span[@class="text-color-flashy-2"]',response=response)[0].text_content().strip(' \n') + '%' #percent needs to be escaped for configparser
     s_dct['earnings'] = requester.find('//span[@class="title text-color-flashy-2 text-size-lg text-bold"]',response=response)[0].text_content().strip(' \n')
-    birthday_row = requester.find('//div[@class="row-fluid row-no-margin historyBlock"]' +
-                                  '/div[@class="col-xs-4"][1]//tr[@class="vertical-middle"][2]',response=response)[0]
-    if "Date de naissance" in birthday_row[0].text_content():
-        s_dct['birthday'] = birthday_row[1].text_content()
-    else:
-        raise Exception
+    general_table = requester.find('//div[@class="row-fluid row-no-margin historyBlock"]' +
+                                  '/div[@class="col-xs-4"][1]//tr[@class="vertical-middle"]',response=response)
+    for row in general_table:
+        if "Date de naissance" in row[0].text_content():
+            s_dct['birthday'] = row[1].text_content()
+        elif "Sexe" in row[0].text_content():
+            s_dct['sex'] = row[1].text_content()
 
     bday_time = datetime.strptime(s_dct['birthday'],'%Y-%m-%d')
     for row in table:
@@ -94,7 +98,12 @@ def find_horse_data(name,response):
         dct['type'] = requester.find('/td[3]',response=response,parent=row)[0].text_content()
         dct['mode'] = requester.find('/td[@class="italiques"]',response=response,parent=row)[0].text_content()
         dct['length'] = requester.find('/td[5]',response=response,parent=row)[0].text_content()
-        dct['ground'] = requester.find('/td[6]',response=response,parent=row)[0].text_content()
+        ground = requester.find('/td[6]',response=response,parent=row)[0].text_content()
+        if not ground:
+            ground = 'grass'
+        elif ground == 'PSF':
+            ground = 'sand'
+        dct['ground'] = ground
         dct['cond'] = requester.find('/td[7]',response=response,parent=row)[0].text_content()
         dct['weight'] = requester.find('/td[@class="nom"][2]/following-sibling::td[2]',response=response,parent=row)[0].text_content()
         box = requester.find('/td[@class="nom"][2]/following-sibling::td[3]',response=response,parent=row)[0].text_content()
@@ -126,4 +135,4 @@ def threaded_request_callback(horse):
 if __name__ == '__main__':
     setup()
 
-    requester.bulk(threaded_request_callback,HORSES)
+    requester.bulk(threaded_request_callback,set(HORSES[0:10]))
