@@ -110,6 +110,23 @@ class Threaded_Requester(object):
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             executor.map(callback, urls)
 
+    def login(self,url,data,headers):
+        if not hasattr(self.thread_local, "login"):
+            self.post(url,data,headers)
+            self.thread_local.login = True
+
+    def post(self,url,data,headers=None):
+        s = self.session
+        if headers:
+            resp = s.post(url=url,data=data,headers=headers)
+        else:
+            resp = s.post(url=url,data=data)
+        if resp.status_code == 200:
+            return resp
+        else:
+            self.logger.write(f'post got status {resp.status_code} response, requesting again')
+            self.post(url,data,headers)
+
     @property
     def session(self):
         if not hasattr(self.thread_local, "session"):

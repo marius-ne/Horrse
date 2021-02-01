@@ -22,6 +22,7 @@ for i in range(1,21):
     columns.append(f'BOX{i}')
     columns.append(f'DELTA{i}')
     columns.append(f'NAME{i}')
+    columns.append(f'WEIGHT{i}')
 columns.append('link')
 
 DF_DCT = {c:[] for c in columns}
@@ -167,6 +168,7 @@ def find_races(response):
                 break
         
         dct[f'BOX{ix}'] =  requester.find('/td[@class="filtered arrivees rapport"][last()]/text()',response=response,parent=row)[0]
+        dct[f'WEIGHT{ix}'] =  requester.find('/td[@class="filtered arrivees rapport"][1]/text()',response=response,parent=row)[0]
 
         try:
             delta = requester.find('/td[@class="filtered arrivees strong"]/text()',response=response,parent=row)[0]
