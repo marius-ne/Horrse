@@ -5,6 +5,7 @@ import os, sys
 import pandas as pd
 from datetime import datetime
 import numpy as np
+import random
 
 sys.path.append(".//..//api")
 #pylint: disable=import-error
@@ -12,18 +13,10 @@ from logger import Logger
 from requester import Threaded_Requester, Requester
 from config import Config
 
+IX = 1000000
 
-
-columns = ['starters','mode','track','pool','date','length','ground','cond','ref','corde','Q1','P1','P2','P3']
-for i in range(1,21):
-    columns.append(f'PMU{i}')
-    columns.append(f'OUV{i}')
-    columns.append(f'S/A{i}')
-    columns.append(f'BOX{i}')
-    columns.append(f'DELTA{i}')
-    columns.append(f'NAME{i}')
-    columns.append(f'WEIGHT{i}')
-columns.append('link')
+columns = ['IX','starters','mode','track','pool','date','length','ground','cond','ref','corde','Q1',
+           'P1','P2','P3','FIN','PMU','OUV','S/A','BOX','DELTA','WEIGHT','NAME','JOCK','TRAINER','link']
 
 DF_DCT = {c:[] for c in columns}
 RACE_YEAR = {f'{m:02d}' : [] for m in range(1,13)}
@@ -36,7 +29,7 @@ def year():
 def log():
     df = pd.DataFrame.from_dict(DF_DCT)
     df.to_csv(path_or_buf=open(f'races_{config.YEAR}.csv','w'),na_rep='NaN',index=False, encoding="utf-8")
-    df.to_excel(excel_writer=open(f'races_{config.YEAR}.xlsx','wb'),index=False,na_rep='NaN', encoding="utf-8")
+    df.to_excel(excel_writer=open(f'races_{config.YEAR}.xlsx','wb'),na_rep='NaN',index=False, encoding="utf-8")
 
 def setup():
     os.chdir('C://Users//meneu//Documents//prop//code//horrse//git_repo//src//races')
@@ -69,23 +62,17 @@ def setup():
     os.chdir(f'./../../races/{config.RACE_TYPE}')
 
 def find_races(response):
+    """
+    writing a row for each legal finishing horse
+    dct (general dct) is the general info, needs to be looked up only once
+    sdct (specific dct) is unique for each horse, needs to be looked up for every row
+    """
     global DF_DCT
-    #print(response.url)
-    illegal_placements = 0
-
-    # columns = ['starters','mode','track','pool','date','length','ground','cond','ref','corde','Q1','P1','P2','P3']
-    # for i in range(1,21):
-    #     columns.append(f'PMU{i}')
-    #     columns.append(f'OUV{i}')
-    #     columns.append(f'S/A{i}')
-    #     columns.append(f'BOX{i}')
-    #     columns.append(f'DELTA{i}')
-    #     columns.append(f'NAME{i}')
-    # columns.append('link')
+    global IX
+    
     dct = {c:np.nan for c in columns}
 
     info_paragraph = requester.find('//div[@class ="row-fluid row-no-margin text-left"]/p',response=response)[0]
-    pool_paragraph = requester.find('//div[@class ="row-fluid row-no-margin text-left"]/p',response=response)[1]
     info = requester.find('/node()',response=response,parent=info_paragraph)
     
     br_pos = 0
@@ -97,30 +84,20 @@ def find_races(response):
                 br_pos += 1
             elif el.tag == 'br':
                 for i in info[:br_pos]:
-                    main.extend([entry.rstrip().lstrip() for entry in i.text_content().split('-')])
-                #misc = ''.join(info[br_pos+1:]).replace('\n','')
+                    main.extend([entry.strip() for entry in i.text_content().split('-')])
                 break
         except AttributeError:
+            #UnicodeElements have no .tag attribute
             continue
 
     race_type = main[0]
     logger.write(race_type)
     
     if config.RACE_TYPE not in race_type.lower():
-        #print(race_type)
-        return None    
+        logger.write(f'parsed {response.url}')
+        return None  
 
-    dct['pool'] = requester.find('/node()',response=response,parent=pool_paragraph)[3].strip(' \n').replace('€','EU')
-
-    table = requester.find('//tr[@class="vertical-middle"]',response=response)
-
-    track = requester.find('//header[@class ="text-center CourseHeader"]/h1/node()[not(self::strong)]',response=response)
-    
-    for entry in track:
-        if '/' in entry:
-            entry = entry.replace(' ','')
-            entry = entry.split('/')[0][1:]
-            dct['track'] = entry.replace('é','e')
+    table = requester.find('//tr[@class="vertical-middle"]',response=response)  
 
     dct['mode'] = race_type.replace('é','e')
 
@@ -128,6 +105,21 @@ def find_races(response):
 
     dct['date'] = response.url.split('/')[4]
 
+    dct['starters'] = len(table)
+
+    dct['IX'] = IX
+
+    pool_paragraph = requester.find('//div[@class ="row-fluid row-no-margin text-left"]/p',response=response)[1]
+    dct['pool'] = requester.find('/node()',response=response,parent=pool_paragraph)[3].replace('€','').strip(' \n')
+
+    track = requester.find('//header[@class ="text-center CourseHeader"]/h1/node()[not(self::strong)]',response=response)
+    for entry in track:
+        if '/' in entry:
+            entry = entry.replace(' ','')
+            entry = entry.split('/')[0][1:]
+            dct['track'] = entry.replace('é','e')    
+
+    #parsing the paragraph above the table for the relevant info
     for i in main:
         if 'sable' in i.lower():
             dct['ground'] = 'sand'
@@ -149,55 +141,68 @@ def find_races(response):
     dct['Q1'] = requester.find('/td[2]',response=response,parent=odds_table[0])[0].text_content().replace('€','EU').replace(',','.')
     dct['P1'] = requester.find('/td[2]',response=response,parent=odds_table[1])[0].text_content().replace('€','EU').replace(',','.')
     dct['P2'] = requester.find('/td[2]',response=response,parent=odds_table[2])[0].text_content().replace('€','EU').replace(',','.')
-    
     try:
         dct['P3'] = requester.find('/td[2]',response=response,parent=odds_table[3])[0].text_content().replace('€','EU').replace(',','.')
     except IndexError:
         pass
     
-
-    for ix,row in enumerate(table):
-        ix = ix + 1
+    legals = []
+    #trying to find the number of legal finishers
+    for row in table:
+        #finishing position
         fin = requester.find('/td[@class="fixe strong"]/text()',response=response,parent=row)[0]
         try:
+            #is the finishing a number? -> else is illegal if not Npl. (unplaced)
             fin = int(fin[0])
+            legals.append(row)
         except ValueError:
             if fin != "Npl.":
-                illegal_placements += 1
-                print(fin,response.url)
+                print(fin,response.url.split('/')[-1])
                 break
+            else:
+                legals.append(row)
+            
+    dct['starters'] = len(legals)
+    
+    specifics = ['FIN','PMU','OUV','S/A','BOX','DELTA','WEIGHT','NAME','JOCK','TRAINER']
+    #now comes horse specific info, general info in dct is unchanged, specific gets generated for each legal finishing horse
+    for pos,row in enumerate(legals):
+        for param in specifics:
+            dct[param] = np.nan
+
+        dct['FIN'] = pos + 1
         
-        dct[f'BOX{ix}'] =  requester.find('/td[@class="filtered arrivees rapport"][last()]/text()',response=response,parent=row)[0]
-        dct[f'WEIGHT{ix}'] =  requester.find('/td[@class="filtered arrivees rapport"][1]/text()',response=response,parent=row)[0]
+        dct['BOX'] =  requester.find('/td[@class="filtered arrivees rapport"][last()]/text()',response=response,parent=row)[0]
+        weight =  requester.find('/td[@class="filtered arrivees rapport"][1]',response=response,parent=row)[0].text_content()
+        if weight == '-':
+             weight =  requester.find('/td[@class="filtered arrivees rapport"][2]',response=response,parent=row)[0].text_content()
+        dct['WEIGHT'] = weight
 
         try:
             delta = requester.find('/td[@class="filtered arrivees strong"]/text()',response=response,parent=row)[0]
-            dct[f'DELTA{ix}'] = delta.replace('ê','e')
+            dct['DELTA'] = delta.replace('ê','e')
         except IndexError:
             pass
 
         #sex and age combined into single argument (Hongre - 5y/o == "H5")
-        dct[f'S/A{ix}'] = requester.find('/td[@class="filtered arrivees"]/text()',response=response,parent=row)[0]
+        dct['S/A'] = requester.find('/td[@class="filtered arrivees"]/text()',response=response,parent=row)[0]
         
         #xpath numbering is indexed from 1
-        dct[f'OUV{ix}'] = requester.find('/td[@class="rapport filtered arrivees"][1]/text()',response=response,parent=row)[0]
-        dct[f'PMU{ix}'] = requester.find('/td[@class="rapport filtered arrivees"][2]/text()',response=response,parent=row)[0]
+        dct['OUV'] = requester.find('/td[@class="rapport filtered arrivees"][1]/text()',response=response,parent=row)[0]
+        dct['PMU'] = requester.find('/td[@class="rapport filtered arrivees"][2]/text()',response=response,parent=row)[0]
 
         horse = requester.find('/td[@class="nom tooltip-cell strong"]',response=response,parent=row)[0]
-        dct[f'NAME{ix}'] = f'{"-".join(horse.text_content().split(" "))}-{horse.attrib["data-id"]}'
+        dct['NAME'] = f'{"-".join(horse.text_content().split(" "))}-{horse.attrib["data-id"]}'
 
-        #jock = requester.find('/td[@class="nom tooltip-cell filtered arrivees"][1]/text()',parent=row)[0]
-        #trainer = requester.find('/td[@class="nom tooltip-cell filtered arrivees"][2]/text()',parent=row)[0]
+        dct['JOCK'] = requester.find('/td[@class="nom tooltip-cell filtered arrivees"][1]',response=response,parent=row)[0].text_content()
+        dct['TRAINER'] = requester.find('/td[@class="nom tooltip-cell filtered arrivees"][2]',response=response,parent=row)[0].text_content()
 
-    dct['starters'] = len(table) - illegal_placements
-
-    for k,v in dct.items():
-        DF_DCT[k].append(v)
-
-    if dct['starters'] is np.nan:
-        logger.write(f'parsed {response.url}')
-    else:
-        logger.write(f'parsed {response.url}, found handicap')
+        
+        dct = {k : v.strip() if type(v) == str else v for k,v in dct.items()}
+        for k,v in dct.items():
+            DF_DCT[k].append(v)
+    IX += 1
+    logger.write(f'parsed {response.url}, found handicap')
 
     
 def threaded_request_callback(url):
