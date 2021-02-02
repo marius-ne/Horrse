@@ -11,7 +11,7 @@ class Requester(object):
     def __init__(self):
         self.s = requests.Session()
         self.logger = Logger()
-        sys.setrecursionlimit(1000)
+        sys.setrecursionlimit(500)
 
     @property
     def webpage(self):
@@ -79,7 +79,7 @@ class Threaded_Requester(object):
     def __init__(self):
         self.thread_local = threading.local()
         self.logger = Logger()
-        sys.setrecursionlimit(1000)
+        sys.setrecursionlimit(500)
 
     @property
     def webpage(self):

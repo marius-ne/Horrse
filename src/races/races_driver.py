@@ -15,8 +15,8 @@ from config import Config
 
 
 
-columns = ['IX','starters','mode','track','pool','date','length','ground','cond','ref','corde','Q1',
-           'P1','P2','P3','FIN','PMU','OUV','S/A','BOX','DELTA','WEIGHT','NAME','JOCK','TRAINER','link']
+columns = ['IX','starters','mode','track','pool','date','length','ground','cond','ref','corde','q1',
+           'p1','p2','p3','FIN','PMU','OUV','S/A','BOX','DELTA','WEIGHT','NAME','JOCK','TRAINER','link']
 
 DF_DCT = {c:[] for c in columns}
 RACE_YEAR = {f'{m:02d}' : [] for m in range(1,13)}
@@ -41,7 +41,7 @@ def setup():
     logger = Logger()
     requester = Threaded_Requester()
 
-    IX = config.YEAR * 10000
+    IX = int(config.YEAR) * 10000
 
     #global columns
     #global RACE_YEAR
@@ -142,11 +142,11 @@ def find_races(response):
             dct['cond'] = i.replace('é','e')
 
     odds_table = requester.find('//table[@class = "table reports first"]/tbody//tr[@class = "vertical-middle text-center"]',response=response)
-    dct['Q1'] = requester.find('/td[2]',response=response,parent=odds_table[0])[0].text_content().replace('€','').replace(',','.')
-    dct['P1'] = requester.find('/td[2]',response=response,parent=odds_table[1])[0].text_content().replace('€','').replace(',','.')
-    dct['P2'] = requester.find('/td[2]',response=response,parent=odds_table[2])[0].text_content().replace('€','').replace(',','.')
+    dct['q1'] = requester.find('/td[2]',response=response,parent=odds_table[0])[0].text_content().replace('€','').replace(',','.')
+    dct['p1'] = requester.find('/td[2]',response=response,parent=odds_table[1])[0].text_content().replace('€','').replace(',','.')
+    dct['p2'] = requester.find('/td[2]',response=response,parent=odds_table[2])[0].text_content().replace('€','').replace(',','.')
     try:
-        dct['P3'] = requester.find('/td[2]',response=response,parent=odds_table[3])[0].text_content().replace('€','').replace(',','.')
+        dct['p3'] = requester.find('/td[2]',response=response,parent=odds_table[3])[0].text_content().replace('€','').replace(',','.')
     except IndexError:
         pass
     
@@ -177,30 +177,47 @@ def find_races(response):
         dct['FIN'] = pos + 1
         
         dct['BOX'] =  requester.find('/td[@class="filtered arrivees rapport"][last()]/text()',response=response,parent=row)[0]
-        weight =  requester.find('/td[@class="filtered arrivees rapport"][1]',response=response,parent=row)[0].text_content()
-        if weight == '-':
-             weight =  requester.find('/td[@class="filtered arrivees rapport"][2]',response=response,parent=row)[0].text_content()
-        dct['WEIGHT'] = weight.replace(',','.')
+        weight =  requester.find('/td[@class="filtered arrivees rapport"][1]',response=response,parent=row)[0].text_content().replace(',','.')
+        #sometimes xpath changes when preceding column is "-", then weight moves to [2]
+        if weight.strip() == '-':
+             weight =  requester.find('/td[@class="filtered arrivees rapport"][2]',response=response,parent=row)[0].text_content().replace(',','.')
+        try:
+            #
+            num_test = int(weight[0])
+            dct['WEIGHT'] = weight
+        except ValueError:
+            pass #weight stays np.nan
 
         try:
             delta = requester.find('/td[@class="filtered arrivees strong"]/text()',response=response,parent=row)[0]
             dct['DELTA'] = delta.replace('ê','e')
         except IndexError:
-            pass
+            pass #delta stays np.nan
 
         #sex and age combined into single argument (Hongre - 5y/o == "H5")
         dct['S/A'] = requester.find('/td[@class="filtered arrivees"]/text()',response=response,parent=row)[0]
         
         #xpath numbering is indexed from 1
-        dct['OUV'] = requester.find('/td[@class="rapport filtered arrivees"][1]/text()',response=response,parent=row)[0]
-        dct['PMU'] = requester.find('/td[@class="rapport filtered arrivees"][2]/text()',response=response,parent=row)[0]
+        ouv = requester.find('/td[@class="rapport filtered arrivees"][1]/text()',response=response,parent=row)[0]
+        try:
+            ouv = int(ouv[0])
+            dct['OUV'] = ouv
+        except ValueError:
+            pass #ouv stays np.nan
+
+        pmu =  requester.find('/td[@class="rapport filtered arrivees"][2]/text()',response=response,parent=row)[0]
+        try:
+            pmu = int(pmu[0])
+            dct['PMU'] = pmu
+        except ValueError:
+            pass #pmu stays np.nan
 
         horse = requester.find('/td[@class="nom tooltip-cell strong"]',response=response,parent=row)[0]
+        #getting name in the url format (made up of name and id)
         dct['NAME'] = f'{"-".join(horse.text_content().split(" "))}-{horse.attrib["data-id"]}'
 
         dct['JOCK'] = requester.find('/td[@class="nom tooltip-cell filtered arrivees"][1]/a',response=response,parent=row)[0].attrib['href'].split('/')[-1]
         dct['TRAINER'] = requester.find('/td[@class="nom tooltip-cell filtered arrivees"][2]/a',response=response,parent=row)[0].attrib['href'].split('/')[-1]
-
         
         dct = {k : v.strip() if type(v) == str else v for k,v in dct.items()}
         for k,v in dct.items():
@@ -225,7 +242,7 @@ if __name__ == '__main__':
     bef = time.time()
 
     requester.bulk(threaded_request_callback,urls)
-    #for i in range(200,300):
+    #for i in range(200,250):
     #    threaded_request_callback(urls[i])
 
     after = time.time()
