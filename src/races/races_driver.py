@@ -18,9 +18,6 @@ from config import Config
 columns = ['IX','starters','mode','track','pool','date','length','ground','cond','ref','corde','q1',
            'p1','p2','p3','FIN','PMU','OUV','S/A','BOX','DELTA','WEIGHT','NAME','JOCK','TRAINER','link']
 
-DF_DCT = {c:[] for c in columns}
-RACE_YEAR = {f'{m:02d}' : [] for m in range(1,13)}
-
 def year():
     #generator that steps through the year
     for k,v in config.YEAR_DCT.items():
@@ -31,7 +28,7 @@ def log():
     df.to_csv(path_or_buf=open(f'races_{config.YEAR}.csv','w'),na_rep='NaN',index=False, encoding="utf-8")
     df.to_excel(excel_writer=open(f'races_{config.YEAR}.xlsx','wb'),na_rep='NaN',index=False, encoding="utf-8")
 
-def setup():
+def setup(year):
     os.chdir('C://Users//meneu//Documents//prop//code//horrse//git_repo//src//races')
     global requester
     global logger
@@ -41,14 +38,14 @@ def setup():
     logger = Logger()
     requester = Threaded_Requester()
 
+    config.YEAR = year
     IX = int(config.YEAR) * 10000
 
-    #global columns
-    #global RACE_YEAR
-    #global DF_DCT
-    #DF_DCT = {c:[] for c in columns}
-    #RACE_YEAR = {f'{m:02d}' : [] for m in range(1,13)}
-    #requester = Requester()
+    global RACE_YEAR
+    global DF_DCT
+    DF_DCT = {c:[] for c in columns}
+    RACE_YEAR = {f'{m:02d}' : [] for m in range(1,13)}
+    
     os.chdir(f'./meetings/{config.MEETING_TYPE}')
 
     with open(f'meetings_{config.YEAR}.txt','r') as foo:
@@ -114,7 +111,7 @@ def find_races(response):
     dct['IX'] = IX
 
     pool_paragraph = requester.find('//div[@class ="row-fluid row-no-margin text-left"]/p',response=response)[1]
-    dct['pool'] = requester.find('/node()',response=response,parent=pool_paragraph)[3].replace('€','').strip(' \n')
+    dct['pool'] = requester.find('/node()',response=response,parent=pool_paragraph)[3].replace('€','').replace('.','').strip(' \n')
 
     track = requester.find('//header[@class ="text-center CourseHeader"]/h1/node()[not(self::strong)]',response=response)
     for entry in track:
@@ -130,7 +127,7 @@ def find_races(response):
             cond = [word.replace('é','e') for word in main if 'terrain' in word.lower()]
             dct['cond'] = ''.join(cond) if cond else np.nan
         elif 'mètres' in i.lower() and 'lice' not in i.lower():
-            dct['length'] = i.replace('mètres','m')
+            dct['length'] = i.strip('mètres ').replace('.','')
         elif 'réf' in i.lower():
             dct['ref'] = i.replace('é','e').replace(',','.').strip('Ref: ')
         elif 'gauche' in i.lower():
@@ -179,17 +176,17 @@ def find_races(response):
         dct['BOX'] =  requester.find('/td[@class="filtered arrivees rapport"][last()]/text()',response=response,parent=row)[0]
         weight =  requester.find('/td[@class="filtered arrivees rapport"][1]',response=response,parent=row)[0].text_content().replace(',','.')
         #sometimes xpath changes when preceding column is "-", then weight moves to [2]
-        if weight.strip() == '-':
-             weight =  requester.find('/td[@class="filtered arrivees rapport"][2]',response=response,parent=row)[0].text_content().replace(',','.')
+        if '-' in weight:
+             weight =  requester.find('/td[@class="filtered arrivees rapport"][2]',response=response,parent=row)[0].text_content().replace(',','.').strip()
         try:
-            #
-            num_test = int(weight[0])
+            #testing if value can be cast to a number
+            _num_test = int(weight[0])
             dct['WEIGHT'] = weight
         except ValueError:
             pass #weight stays np.nan
 
         try:
-            delta = requester.find('/td[@class="filtered arrivees strong"]/text()',response=response,parent=row)[0]
+            delta = requester.find('/td[@class="filtered arrivees strong"]/text()',response=response,parent=row)[0].strip()
             dct['DELTA'] = delta.replace('ê','e')
         except IndexError:
             pass #delta stays np.nan
@@ -198,16 +195,16 @@ def find_races(response):
         dct['S/A'] = requester.find('/td[@class="filtered arrivees"]/text()',response=response,parent=row)[0]
         
         #xpath numbering is indexed from 1
-        ouv = requester.find('/td[@class="rapport filtered arrivees"][1]/text()',response=response,parent=row)[0]
+        ouv = requester.find('/td[@class="rapport filtered arrivees"][1]/text()',response=response,parent=row)[0].strip()
         try:
-            ouv = int(ouv[0])
+            _num_test = int(ouv[0])
             dct['OUV'] = ouv
         except ValueError:
             pass #ouv stays np.nan
 
-        pmu =  requester.find('/td[@class="rapport filtered arrivees"][2]/text()',response=response,parent=row)[0]
+        pmu =  requester.find('/td[@class="rapport filtered arrivees"][2]/text()',response=response,parent=row)[0].strip()
         try:
-            pmu = int(pmu[0])
+            _num_test = int(pmu[0])
             dct['PMU'] = pmu
         except ValueError:
             pass #pmu stays np.nan
@@ -231,25 +228,26 @@ def threaded_request_callback(url):
     find_races(requester.webpage)
 
 if __name__ == '__main__':
-    setup()    
+    for y in range(2006,2021):
+        setup(y)    
 
-    urls = []
-    for v in RACE_YEAR.values():
-        urls.extend(v)
+        urls = []
+        for v in RACE_YEAR.values():
+            urls.extend(v)
 
-    all_time = []
+        all_time = []
 
-    bef = time.time()
+        bef = time.time()
 
-    requester.bulk(threaded_request_callback,urls)
-    #for i in range(200,250):
-    #    threaded_request_callback(urls[i])
+        requester.bulk(threaded_request_callback,urls)
+        #for i in range(200,210):
+        #    threaded_request_callback(urls[i])
 
-    after = time.time()
-    all_time.append(after-bef)
-    log()
+        after = time.time()
+        all_time.append(after-bef)
+        log()
 
-    logger.write(f'{config.YEAR} took {(sum(all_time)/len(all_time) / 60):2f} minutes')
-    
+        logger.write(f'{config.YEAR} took {(sum(all_time)/len(all_time) / 60):2f} minutes')
+
     
 
