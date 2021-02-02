@@ -13,7 +13,7 @@ from logger import Logger
 from requester import Threaded_Requester, Requester
 from config import Config
 
-IX = 1000000
+
 
 columns = ['IX','starters','mode','track','pool','date','length','ground','cond','ref','corde','Q1',
            'P1','P2','P3','FIN','PMU','OUV','S/A','BOX','DELTA','WEIGHT','NAME','JOCK','TRAINER','link']
@@ -36,9 +36,12 @@ def setup():
     global requester
     global logger
     global config
+    global IX
     config = Config()
     logger = Logger()
     requester = Threaded_Requester()
+
+    IX = config.YEAR * 10000
 
     #global columns
     #global RACE_YEAR
