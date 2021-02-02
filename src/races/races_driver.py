@@ -55,6 +55,7 @@ def setup():
             date, races = line.split(config.COL_SEP)
 
             for race in [i for i in races.split(config.DELIM) if i]:
+                #double checking illegal meetings
                 if not [j for j in race.split('/') if j in config.ILLEGAL_MEETINGS]:
                     RACE_YEAR[date.split('-')[1]].append(race)
                 else:
@@ -128,7 +129,7 @@ def find_races(response):
         elif 'mètres' in i.lower() and 'lice' not in i.lower():
             dct['length'] = i.replace('mètres','m')
         elif 'réf' in i.lower():
-            dct['ref'] = i.replace('é','e').replace(',','.')
+            dct['ref'] = i.replace('é','e').replace(',','.').strip('Ref: ')
         elif 'gauche' in i.lower():
             dct['corde'] = 'left'
         elif 'droit' in i.lower():
@@ -138,11 +139,11 @@ def find_races(response):
             dct['cond'] = i.replace('é','e')
 
     odds_table = requester.find('//table[@class = "table reports first"]/tbody//tr[@class = "vertical-middle text-center"]',response=response)
-    dct['Q1'] = requester.find('/td[2]',response=response,parent=odds_table[0])[0].text_content().replace('€','EU').replace(',','.')
-    dct['P1'] = requester.find('/td[2]',response=response,parent=odds_table[1])[0].text_content().replace('€','EU').replace(',','.')
-    dct['P2'] = requester.find('/td[2]',response=response,parent=odds_table[2])[0].text_content().replace('€','EU').replace(',','.')
+    dct['Q1'] = requester.find('/td[2]',response=response,parent=odds_table[0])[0].text_content().replace('€','').replace(',','.')
+    dct['P1'] = requester.find('/td[2]',response=response,parent=odds_table[1])[0].text_content().replace('€','').replace(',','.')
+    dct['P2'] = requester.find('/td[2]',response=response,parent=odds_table[2])[0].text_content().replace('€','').replace(',','.')
     try:
-        dct['P3'] = requester.find('/td[2]',response=response,parent=odds_table[3])[0].text_content().replace('€','EU').replace(',','.')
+        dct['P3'] = requester.find('/td[2]',response=response,parent=odds_table[3])[0].text_content().replace('€','').replace(',','.')
     except IndexError:
         pass
     
@@ -176,7 +177,7 @@ def find_races(response):
         weight =  requester.find('/td[@class="filtered arrivees rapport"][1]',response=response,parent=row)[0].text_content()
         if weight == '-':
              weight =  requester.find('/td[@class="filtered arrivees rapport"][2]',response=response,parent=row)[0].text_content()
-        dct['WEIGHT'] = weight
+        dct['WEIGHT'] = weight.replace(',','.')
 
         try:
             delta = requester.find('/td[@class="filtered arrivees strong"]/text()',response=response,parent=row)[0]
@@ -194,8 +195,8 @@ def find_races(response):
         horse = requester.find('/td[@class="nom tooltip-cell strong"]',response=response,parent=row)[0]
         dct['NAME'] = f'{"-".join(horse.text_content().split(" "))}-{horse.attrib["data-id"]}'
 
-        dct['JOCK'] = requester.find('/td[@class="nom tooltip-cell filtered arrivees"][1]',response=response,parent=row)[0].text_content()
-        dct['TRAINER'] = requester.find('/td[@class="nom tooltip-cell filtered arrivees"][2]',response=response,parent=row)[0].text_content()
+        dct['JOCK'] = requester.find('/td[@class="nom tooltip-cell filtered arrivees"][1]/a',response=response,parent=row)[0].attrib['href'].split('/')[-1]
+        dct['TRAINER'] = requester.find('/td[@class="nom tooltip-cell filtered arrivees"][2]/a',response=response,parent=row)[0].attrib['href'].split('/')[-1]
 
         
         dct = {k : v.strip() if type(v) == str else v for k,v in dct.items()}
