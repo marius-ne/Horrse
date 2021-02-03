@@ -65,6 +65,9 @@ class Requester(object):
             self.logger.write(f'post got status {resp.status_code} response, requesting again')
             self.post(url,data,headers)
 
+    def login(self,url,data,headers):
+        self.post(url,data,headers)
+        
     def renew(self):
         self.s.close()
         self.s = requests.Session()
@@ -112,6 +115,7 @@ class Threaded_Requester(object):
 
     def login(self,url,data,headers):
         if not hasattr(self.thread_local, "login"):
+            self.logger.write(f'logging into {url}')
             self.post(url,data,headers)
             self.thread_local.login = True
 

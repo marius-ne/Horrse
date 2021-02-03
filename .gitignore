@@ -7,4 +7,6 @@ test.csv
 *.json
 galop/
 handicap/
-data/
+playground/
+r/
+horses.csv
