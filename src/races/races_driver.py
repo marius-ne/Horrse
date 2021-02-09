@@ -16,7 +16,7 @@ from config import Config
 
 
 columns = ['IX','starters','mode','track','pool','date','length','ground','cond','ref','corde','q1',
-           'p1','p2','p3','FIN','PMU','OUV','S/A','BOX','DELTA','WEIGHT','NAME','JOCK','TRAINER','link']
+           'p1','p2','p3','FIN','PMU','OUV','S/A','BOX','DELTA','WEIGHT','BLINKERS','NAME','JOCK','TRAINER','link']
 
 def year():
     #generator that steps through the year
@@ -100,7 +100,7 @@ def find_races(response):
 
     table = requester.find('//tr[@class="vertical-middle"]',response=response)  
 
-    dct['mode'] = race_type.replace('é','e')
+    dct['mode'] = race_type
 
     dct['link'] = response.url
 
@@ -118,25 +118,25 @@ def find_races(response):
         if '/' in entry:
             entry = entry.replace(' ','')
             entry = entry.split('/')[0][1:]
-            dct['track'] = entry.replace('é','e')    
+            dct['track'] = entry   
 
     #parsing the paragraph above the table for the relevant info
     for i in main:
         if 'sable' in i.lower():
             dct['ground'] = 'sand'
-            cond = [word.replace('é','e') for word in main if 'terrain' in word.lower()]
+            cond = [word for word in main if 'terrain' in word.lower()]
             dct['cond'] = ''.join(cond) if cond else np.nan
         elif 'mètres' in i.lower() and 'lice' not in i.lower():
             dct['length'] = i.strip('mètres ').replace('.','')
         elif 'réf' in i.lower():
-            dct['ref'] = i.replace('é','e').replace(',','.').strip('Ref: ')
+            dct['ref'] = i.replace(',','.').strip('Ref: ')
         elif 'gauche' in i.lower():
             dct['corde'] = 'left'
         elif 'droit' in i.lower():
             dct['corde'] = 'right'
         elif 'terrain' in i.lower() and dct['ground'] is np.nan:
             dct['ground'] = 'grass'
-            dct['cond'] = i.replace('é','e')
+            dct['cond'] = i
 
     odds_table = requester.find('//table[@class = "table reports first"]/tbody//tr[@class = "vertical-middle text-center"]',response=response)
     dct['q1'] = requester.find('/td[2]',response=response,parent=odds_table[0])[0].text_content().replace('€','').replace(',','.')
@@ -165,7 +165,8 @@ def find_races(response):
             
     dct['starters'] = len(legals)
     
-    specifics = ['FIN','PMU','OUV','S/A','BOX','DELTA','WEIGHT','NAME','JOCK','TRAINER']
+    #horse specific columns are in allcaps
+    specifics = [col for col in columns if col[0].isupper() and col != 'IX']
     #now comes horse specific info, general info in dct is unchanged, specific gets generated for each legal finishing horse
     for pos,row in enumerate(legals):
         for param in specifics:
@@ -187,12 +188,17 @@ def find_races(response):
 
         try:
             delta = requester.find('/td[@class="filtered arrivees strong"]/text()',response=response,parent=row)[0].strip()
-            dct['DELTA'] = delta.replace('ê','e')
+            dct['DELTA'] = delta
         except IndexError:
             pass #delta stays np.nan
 
         #sex and age combined into single argument (Hongre - 5y/o == "H5")
         dct['S/A'] = requester.find('/td[@class="filtered arrivees"]/text()',response=response,parent=row)[0]
+
+        #yes. the only difference to above is the trailing space
+        blinkers = requester.find('/td[@class="filtered arrivees "]/div/img',response=response,parent=row)
+        if blinkers:
+            dct['BLINKERS'] = blinkers[0].attrib['title']
         
         #xpath numbering is indexed from 1
         ouv = requester.find('/td[@class="rapport filtered arrivees"][1]/text()',response=response,parent=row)[0].strip()
@@ -216,7 +222,7 @@ def find_races(response):
         dct['JOCK'] = requester.find('/td[@class="nom tooltip-cell filtered arrivees"][1]/a',response=response,parent=row)[0].attrib['href'].split('/')[-1]
         dct['TRAINER'] = requester.find('/td[@class="nom tooltip-cell filtered arrivees"][2]/a',response=response,parent=row)[0].attrib['href'].split('/')[-1]
         
-        dct = {k : v.strip() if type(v) == str else v for k,v in dct.items()}
+        dct = {k : v.replace('é','e').replace('è','e').replace('ê','e').strip() if type(v) == str else v for k,v in dct.items()}
         for k,v in dct.items():
             DF_DCT[k].append(v)
     IX += 1
@@ -228,7 +234,7 @@ def threaded_request_callback(url):
     find_races(requester.webpage)
 
 if __name__ == '__main__':
-    for y in range(2006,2021):
+    for y in range(2010,2021):
         setup(y)    
 
         urls = []
@@ -241,7 +247,7 @@ if __name__ == '__main__':
 
         requester.bulk(threaded_request_callback,urls)
         #for i in range(200,210):
-        #    threaded_request_callback(urls[i])
+            #threaded_request_callback(urls[i])
 
         after = time.time()
         all_time.append(after-bef)

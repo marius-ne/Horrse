@@ -17,12 +17,14 @@ from config import Config
 columns = ['IX','name','sex','birthday','success','trainer','FIN','BOX','DATE','AGE','JOCK','TRACK','TYPE','MODE','LENGTH','GROUND','COND','WEIGHT','LINK']
 
 def merge(y1,y2):
+    os.chdir(f'.//..//races//{config.RACE_TYPE}')
     df = pd.concat([pd.read_csv(f'races_{y}.csv',engine='python') for y in range(y1,y2)])
 
     with open('all.csv','w') as f:
         df.to_csv(f,na_rep='NaN',index=False,encoding="utf-8")
     with open('all.xlsx','wb') as f:
         df.to_excel(f,na_rep='NaN',index=False,encoding="utf-8")
+    os.chdir('.//..//..//horses')
 
 def log():
     df = pd.DataFrame.from_dict(DF_DCT)
@@ -135,6 +137,8 @@ def threaded_request_callback(horse):
 if __name__ == '__main__':
    
     setup()
+    #merge(2006,2021)
+    
     bef = time.time()
     print(len(set(HORSES)))
     requester.bulk(threaded_request_callback,set(HORSES))
