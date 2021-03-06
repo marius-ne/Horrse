@@ -32,7 +32,7 @@ Firefox webdriver. Available for download [here](https://github.com/mozilla/geck
 
 - [ ] OUV-fav., PMU-fav. and random strategies
 
-- [ ] individual horse files
+- [x] individual horse files
 
 - [ ] individual jockey files
 
