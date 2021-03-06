@@ -39,7 +39,7 @@ def setup(year):
     requester = Threaded_Requester()
 
     config.YEAR = year
-    IX = int(config.YEAR) * 10000
+    IX = int(config.YEAR) * 10000   #indexing of csv rows
 
     global RACE_YEAR
     global DF_DCT
@@ -230,6 +230,7 @@ def find_races(response):
 
     
 def threaded_request_callback(url):
+    """callback for finding handicap races and logging them"""
     requester.webpage = url
     find_races(requester.webpage)
 
@@ -245,6 +246,7 @@ if __name__ == '__main__':
 
         bef = time.time()
 
+        #threaded requester
         requester.bulk(threaded_request_callback,urls)
         #for i in range(200,210):
             #threaded_request_callback(urls[i])

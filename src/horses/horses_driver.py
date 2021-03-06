@@ -14,7 +14,7 @@ from logger import Logger
 from requester import Threaded_Requester, Requester
 from config import Config
 
-columns = ['IX','name','sex','birthday','success','trainer','FIN','BOX','DATE','AGE','JOCK','TRACK','TYPE','MODE','LENGTH','GROUND','COND','WEIGHT','LINK']
+COLUMNS = ['IX','name','sex','birthday','success','trainer','FIN','BOX','DATE','AGE','JOCK','TRACK','TYPE','MODE','LENGTH','GROUND','COND','WEIGHT','BLINKERS','LINK']
 
 def merge(y1,y2):
     os.chdir(f'.//..//races//{config.RACE_TYPE}')
@@ -47,7 +47,7 @@ def setup():
     logger = Logger()
     config = Config()
 
-    DF_DCT = {c:[] for c in columns}
+    DF_DCT = {c:[] for c in COLUMNS}
     HORSES = []
 
     with open('login_headers.json','r') as f_in:
@@ -68,7 +68,7 @@ def setup():
     os.chdir('./../../horses')
 
 def find_horse_data(name,response):
-    dct = {c:np.nan for c in columns}
+    dct = {c:np.nan for c in COLUMNS}
     
     table = requester.find('//table[@class = "table tooltip-enable race-table sortable"]/tbody//tr',response=response)
 
@@ -89,7 +89,8 @@ def find_horse_data(name,response):
 
     bday_time = datetime.strptime(dct['birthday'],'%Y-%m-%d')
 
-    specifics = ['FIN','BOX','DATE','AGE','JOCK','TRACK','TYPE','MODE','LENGTH','GROUND','COND','WEIGHT','LINK']
+    #race specific parameters are all caps
+    specifics = [i for i in COLUMNS if i != 'IX' and i[0].isupper()]
     for row in table:
         for param in specifics:
             dct[param] = np.nan
@@ -99,6 +100,9 @@ def find_horse_data(name,response):
         dct['TYPE'] = requester.find('/td[3]',response=response,parent=row)[0].text_content()
         dct['MODE'] = requester.find('/td[@class="italiques"]',response=response,parent=row)[0].text_content()
         dct['LENGTH'] = requester.find('/td[5]',response=response,parent=row)[0].text_content()
+        blinkers = requester.find('//div[@class="media"]/img',response=response,parent=row)
+        if blinkers:
+            dct['BLINKERS'] = blinkers[0].attrib['title']
         ground = requester.find('/td[6]',response=response,parent=row)[0].text_content()
         if not ground:
             ground = 'grass'
