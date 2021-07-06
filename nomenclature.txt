@@ -1,0 +1,2 @@
+meeting - day that contains one or more races
+race - individual horse race with podium
